@@ -20,30 +20,6 @@
 
     <div class="container">
 
-        <h3 class="mb-3">Kontrol Perangkat (Remote)</h3>
-        <div class="row mb-5">
-            <div class="col-md-6">
-                <div class="card shadow-sm text-center p-4 border-primary card-kontrol">
-                    <h4>🔒 Solenoid Door Lock</h4>
-                    <p class="text-muted mb-3">Status Saat Ini: <strong>{{ kontrol.solenoid }}</strong></p>
-                    <div class="d-grid gap-2 d-md-block">
-                        <a href="/set_kontrol/solenoid/OPEN" class="btn btn-success btn-lg">BUKA (OPEN)</a>
-                        <a href="/set_kontrol/solenoid/LOCKED" class="btn btn-danger btn-lg">KUNCI (LOCK)</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm text-center p-4 border-danger card-kontrol">
-                    <h4>🚨 Alarm Buzzer</h4>
-                    <p class="text-muted mb-3">Status Saat Ini: <strong>{{ kontrol.buzzer }}</strong></p>
-                    <div class="d-grid gap-2 d-md-block">
-                        <a href="/set_kontrol/buzzer/ON" class="btn btn-danger btn-lg">NYALAKAN</a>
-                        <a href="/set_kontrol/buzzer/OFF" class="btn btn-secondary btn-lg">MATIKAN</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3>Kelola User (CRUD)</h3>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
