@@ -2,20 +2,48 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Admin IoT</title>
+    <title>Dashboard Smart Locker</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card-kontrol { transition: transform 0.2s; }
+        .card-kontrol:hover { transform: scale(1.02); }
+    </style>
 </head>
 <body class="bg-light">
 
     <nav class="navbar navbar-dark bg-dark mb-4">
         <div class="container">
-            <span class="navbar-brand">Admin Panel IoT</span>
+            <span class="navbar-brand">Smart Locker System (Kelompok 9)</span>
             <a href="/" class="btn btn-sm btn-success">Refresh Data ⟳</a>
         </div>
     </nav>
 
     <div class="container">
-        
+
+        <h3 class="mb-3">Kontrol Perangkat (Remote)</h3>
+        <div class="row mb-5">
+            <div class="col-md-6">
+                <div class="card shadow-sm text-center p-4 border-primary card-kontrol">
+                    <h4>🔒 Solenoid Door Lock</h4>
+                    <p class="text-muted mb-3">Status Saat Ini: <strong>{{ kontrol.solenoid }}</strong></p>
+                    <div class="d-grid gap-2 d-md-block">
+                        <a href="/set_kontrol/solenoid/OPEN" class="btn btn-success btn-lg">BUKA (OPEN)</a>
+                        <a href="/set_kontrol/solenoid/LOCKED" class="btn btn-danger btn-lg">KUNCI (LOCK)</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm text-center p-4 border-danger card-kontrol">
+                    <h4>🚨 Alarm Buzzer</h4>
+                    <p class="text-muted mb-3">Status Saat Ini: <strong>{{ kontrol.buzzer }}</strong></p>
+                    <div class="d-grid gap-2 d-md-block">
+                        <a href="/set_kontrol/buzzer/ON" class="btn btn-danger btn-lg">NYALAKAN</a>
+                        <a href="/set_kontrol/buzzer/OFF" class="btn btn-secondary btn-lg">MATIKAN</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3>Kelola User (CRUD)</h3>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
@@ -29,7 +57,6 @@
                     <tr>
                         <th>ID</th>
                         <th>Username</th>
-                        <th>Password</th>
                         <th>Role</th>
                         <th>Aksi</th>
                     </tr>
@@ -39,7 +66,6 @@
                     <tr>
                         <td>{{ user.id }}</td>
                         <td>{{ user.username }}</td>
-                        <td>{{ user.password }}</td>
                         <td><span class="badge bg-info text-dark">{{ user.role }}</span></td>
                         <td>
                             <a href="/edit_user/{{ user.id }}" class="btn btn-warning btn-sm">Edit</a>
@@ -55,7 +81,7 @@
             </table>
         </div>
 
-        <h3 class="mb-3">Riwayat Aktivitas Alat (Log System)</h3>
+        <h3 class="mb-3">Riwayat Sensor (Log System)</h3>
         <div class="card p-3 shadow-sm mb-5">
             <div class="table-responsive">
                 <table class="table table-striped table-bordered">
@@ -72,12 +98,12 @@
                             <td>{{ log.waktu.strftime('%d-%m-%Y %H:%M:%S') }}</td>
                             <td>{{ log.nama_alat }}</td>
                             <td>
-                                {% if log.status == 'ON' %}
-                                    <span class="badge bg-success">NYALA (ON)</span>
-                                {% elif log.status == 'OFF' %}
-                                    <span class="badge bg-secondary">MATI (OFF)</span>
-                                {% else %}
+                                {% if 'BAHAYA' in log.status or 'ALERT' in log.status %}
                                     <span class="badge bg-danger">{{ log.status }}</span>
+                                {% elif log.status == 'ON' or log.status == 'OPEN' %}
+                                    <span class="badge bg-success">{{ log.status }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ log.status }}</span>
                                 {% endif %}
                             </td>
                         </tr>
