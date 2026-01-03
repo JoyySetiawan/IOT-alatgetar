@@ -27,20 +27,8 @@ class LogAlat(db.Model):
 
 @app.route('/')
 def home():
-    return render_template('index.html')
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    pesan = None
-    if request.method == 'POST':
-        u = request.form.get('username')
-        p = request.form.get('password')
-        cek_user = User.query.filter_by(username=u, password=p).first()
-        if cek_user:
-            return redirect(url_for('dashboard'))
-        else:
-            pesan = "Login Gagal! Cek username/password."
-    return render_template('login.html', error=pesan)
+    # Langsung ke Dashboard tanpa Login
+    return redirect(url_for('dashboard'))
 
 @app.route('/dashboard')
 def dashboard():
