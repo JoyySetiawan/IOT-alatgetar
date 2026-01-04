@@ -5,109 +5,103 @@ from datetime import datetime
 app = Flask(__name__)
 
 # --- KONFIGURASI DATABASE ---
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data_iot.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database_loker.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# --- MODEL DATABASE (LOG RIWAYAT) ---
-class LogAlat(db.Model):
+# --- 1. TABEL MEMBER (DAFTAR KARTU/PIN YANG BOLEH MASUK) ---
+class Member(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nama_alat = db.Column(db.String(100), nullable=False)
-    status = db.Column(db.String(50), nullable=False) 
-    waktu = db.Column(db.DateTime, default=datetime.now) 
+    nama = db.Column(db.String(100), nullable=False)
+    # kode_akses bisa berupa UID Kartu RFID (misal: "A1B2C3D4") atau PIN (misal: "1234")
+    kode_akses = db.Column(db.String(50), unique=True, nullable=False) 
+    status = db.Column(db.String(20), default='AKTIF') # AKTIF / BLOKIR
 
-# --- [UPGRADE] MEMORI STATUS 6 PERANGKAT (REAL-TIME) ---
-# Menyimpan status terkini agar bisa ditampilkan di kartu Dashboard
-status_terkini = {
-    "solenoid": "LOCKED",       # Kunci Pintu (LOCKED / OPEN)
-    "magnet": "TERTUTUP",       # Sensor Pintu Fisik (TERTUTUP / TERBUKA)
-    "paket": "KOSONG",          # Sensor IR (ADA / KOSONG)
-    "keamanan": "AMAN",         # Sensor Getar (AMAN / BAHAYA)
-    "rfid": "-",                # ID Kartu Terakhir
-    "buzzer": "OFF"             # Alarm (ON / OFF)
-}
+# --- 2. TABEL LOG RIWAYAT (SIAPA YANG BUKA PINTU) ---
+class LogAkses(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nama_member = db.Column(db.String(100), nullable=False)
+    kode_akses = db.Column(db.String(50), nullable=False)
+    status_akses = db.Column(db.String(20), nullable=False) # SUKSES / DITOLAK
+    waktu = db.Column(db.DateTime, default=datetime.now)
 
-# --- PERINTAH KONTROL (UNTUK ALAT) ---
-perintah_alat = {
-    "solenoid": "LOCKED", 
-    "buzzer": "OFF"
-}
-
-# --- RUTE WEBSITE ---
+# --- HALAMAN WEBSITE (KHUSUS ADMIN) ---
 
 @app.route('/')
-def home():
+def dashboard():
+    # Tampilkan Data Member & Log
+    data_member = Member.query.all()
+    data_log = LogAkses.query.order_by(LogAkses.waktu.desc()).limit(20).all()
+    return render_template('dashboard.html', members=data_member, logs=data_log)
+
+# --- CRUD MEMBER (ADMIN DAFTARKAN KARTU) ---
+
+@app.route('/tambah_member', methods=['POST'])
+def tambah_member():
+    nama = request.form.get('nama')
+    kode = request.form.get('kode') # UID RFID atau PIN
+    
+    # Cek duplikat
+    cek = Member.query.filter_by(kode_akses=kode).first()
+    if not cek:
+        member_baru = Member(nama=nama, kode_akses=kode, status='AKTIF')
+        db.session.add(member_baru)
+        db.session.commit()
+    
     return redirect(url_for('dashboard'))
 
-@app.route('/dashboard')
-def dashboard():
-    # Ambil 20 log terakhir saja biar loading cepat
-    data_log_alat = LogAlat.query.order_by(LogAlat.waktu.desc()).limit(20).all()
-    # Kirim Log DAN Status Terkini ke HTML
-    return render_template('dashboard.html', logs=data_log_alat, status=status_terkini)
-
-# --- API UTAMA (UPDATE DARI ALAT) ---
-@app.route('/update_iot', methods=['GET'])
-def update_iot():
-    nama = request.args.get('nama')   # Contoh: solenoid, magnet, ir, rfid, getar
-    stat = request.args.get('status') # Contoh: OPEN, TERBUKA, ADA, 12345, BAHAYA
-    
-    if nama and stat:
-        # 1. Simpan Log (Sejarah)
-        log_baru = LogAlat(nama_alat=nama, status=stat)
-        db.session.add(log_baru)
+@app.route('/hapus_member/<int:id_member>')
+def hapus_member(id_member):
+    member = Member.query.get(id_member)
+    if member:
+        db.session.delete(member)
         db.session.commit()
-        
-        # 2. Update Status Visual (Real-time) sesuai nama alat
-        nama_kecil = nama.lower()
-        
-        if 'solenoid' in nama_kecil:       # Update Status Kunci
-            status_terkini['solenoid'] = stat
-            perintah_alat['solenoid'] = 'LOCKED' if stat == 'LOCKED' else 'OPEN'
-            
-        elif 'magnet' in nama_kecil:       # Update Status Pintu Fisik
-            status_terkini['magnet'] = stat
-            
-        elif 'ir' in nama_kecil or 'paket' in nama_kecil: # Update Paket
-            status_terkini['paket'] = stat
-            
-        elif 'rfid' in nama_kecil:         # Update Siapa yang akses terakhir
-            status_terkini['rfid'] = stat
-            
-        elif 'getar' in nama_kecil:        # Update Keamanan
-            status_terkini['keamanan'] = stat
-            # Logika Otomatis: Ada Getaran -> Nyalakan Buzzer
-            if 'BAHAYA' in stat or 'ALERT' in stat:
-                perintah_alat['buzzer'] = 'ON'
-                status_terkini['buzzer'] = 'ON'
-            else:
-                perintah_alat['buzzer'] = 'OFF'
-                status_terkini['buzzer'] = 'OFF'
-                
-        elif 'buzzer' in nama_kecil:       # Update Status Buzzer
-             status_terkini['buzzer'] = stat
-             perintah_alat['buzzer'] = stat
+    return redirect(url_for('dashboard'))
 
-        return jsonify(perintah_alat)
+@app.route('/blokir_member/<int:id_member>')
+def blokir_member(id_member):
+    member = Member.query.get(id_member)
+    if member:
+        # Toggle Status
+        if member.status == 'AKTIF':
+            member.status = 'BLOKIR'
+        else:
+            member.status = 'AKTIF'
+        db.session.commit()
+    return redirect(url_for('dashboard'))
+
+# --- API UNTUK ALAT (PICO W) ---
+# Alat menembak link ini saat ada yang tempel kartu / ketik PIN
+# Contoh: http://IP_LAPTOP:5000/api/cek_akses?kode=A1B2C3D4
+
+@app.route('/api/cek_akses', methods=['GET'])
+def cek_akses():
+    kode_input = request.args.get('kode')
     
+    # 1. Cari di Database
+    member = Member.query.filter_by(kode_akses=kode_input).first()
+    
+    if member:
+        if member.status == 'AKTIF':
+            # IZINKAN MASUK
+            catat_log(member.nama, kode_input, "SUKSES")
+            return jsonify({"hasil": "IZIN", "nama": member.nama, "pesan": "Silakan Masuk"})
+        else:
+            # DITOLAK (DIBLOKIR)
+            catat_log(member.nama, kode_input, "DITOLAK (BLOKIR)")
+            return jsonify({"hasil": "TOLAK", "pesan": "Kartu Diblokir!"})
     else:
-        return jsonify(perintah_alat)
+        # DITOLAK (TIDAK DIKENAL)
+        catat_log("UNKNOWN", kode_input, "DITOLAK (INVALID)")
+        return jsonify({"hasil": "TOLAK", "pesan": "Kartu Tidak Terdaftar"})
 
-# --- API TELEGRAM (OPSIONAL) ---
-@app.route('/api_telegram', methods=['GET'])
-def api_telegram():
-    alat = request.args.get('alat') 
-    aksi = request.args.get('aksi')
-    
-    if alat in perintah_alat and aksi:
-        perintah_alat[alat] = aksi
-        # Update visual dashboard juga
-        if alat in status_terkini:
-            status_terkini[alat] = aksi
-        return f"Berhasil: {alat} -> {aksi}"
-    return "Gagal."
+def catat_log(nama, kode, status):
+    log = LogAkses(nama_member=nama, kode_akses=kode, status_akses=status)
+    db.session.add(log)
+    db.session.commit()
 
+# --- JALANKAN SERVER ---
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
