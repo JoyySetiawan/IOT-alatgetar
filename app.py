@@ -10,94 +10,92 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# --- 1. TABEL MEMBER (DAFTAR KARTU/PIN YANG BOLEH MASUK) ---
-class Member(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    nama = db.Column(db.String(100), nullable=False)
-    # kode_akses bisa berupa UID Kartu RFID (misal: "A1B2C3D4") atau PIN (misal: "1234")
-    kode_akses = db.Column(db.String(50), unique=True, nullable=False) 
-    status = db.Column(db.String(20), default='AKTIF') # AKTIF / BLOKIR
+# --- 1. TABEL USER (CRUD USER) ---
+class Pengguna(db.Model):
+    # ID Telegram dijadikan Primary Key (unik)
+    id_telegram = db.Column(db.String(50), primary_key=True) 
+    nama_telegram = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.String(20), default='WHITELIST') # WHITELIST / BLOKIR
 
-# --- 2. TABEL LOG RIWAYAT (SIAPA YANG BUKA PINTU) ---
-class LogAkses(db.Model):
+# --- 2. TABEL LOG RIWAYAT (SESUAI REQUEST) ---
+class LogRiwayat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nama_member = db.Column(db.String(100), nullable=False)
-    kode_akses = db.Column(db.String(50), nullable=False)
-    status_akses = db.Column(db.String(20), nullable=False) # SUKSES / DITOLAK
+    id_telegram = db.Column(db.String(50), nullable=False)
+    nama_telegram = db.Column(db.String(100), nullable=False)
+    id_mesin = db.Column(db.String(50), nullable=False)
     waktu = db.Column(db.DateTime, default=datetime.now)
 
-# --- HALAMAN WEBSITE (KHUSUS ADMIN) ---
+# --- HALAMAN WEBSITE (ADMIN) ---
 
 @app.route('/')
 def dashboard():
-    # Tampilkan Data Member & Log
-    data_member = Member.query.all()
-    data_log = LogAkses.query.order_by(LogAkses.waktu.desc()).limit(20).all()
-    return render_template('dashboard.html', members=data_member, logs=data_log)
+    # Ambil data User & Log
+    data_user = Pengguna.query.all()
+    # Urutkan log dari yang terbaru
+    data_log = LogRiwayat.query.order_by(LogRiwayat.waktu.desc()).limit(20).all()
+    return render_template('dashboard.html', users=data_user, logs=data_log)
 
-# --- CRUD MEMBER (ADMIN DAFTARKAN KARTU) ---
+# --- CRUD USER (TAMBAH, HAPUS, BLOKIR) ---
 
-@app.route('/tambah_member', methods=['POST'])
-def tambah_member():
-    nama = request.form.get('nama')
-    kode = request.form.get('kode') # UID RFID atau PIN
+@app.route('/tambah_user', methods=['POST'])
+def tambah_user():
+    id_tele = request.form.get('id_tele')
+    nama_tele = request.form.get('nama_tele')
     
-    # Cek duplikat
-    cek = Member.query.filter_by(kode_akses=kode).first()
+    # Cek apakah ID Tele sudah ada
+    cek = Pengguna.query.get(id_tele)
     if not cek:
-        member_baru = Member(nama=nama, kode_akses=kode, status='AKTIF')
-        db.session.add(member_baru)
+        user_baru = Pengguna(id_telegram=id_tele, nama_telegram=nama_tele, status='WHITELIST')
+        db.session.add(user_baru)
         db.session.commit()
     
     return redirect(url_for('dashboard'))
 
-@app.route('/hapus_member/<int:id_member>')
-def hapus_member(id_member):
-    member = Member.query.get(id_member)
-    if member:
-        db.session.delete(member)
+@app.route('/hapus_user/<id_tele>')
+def hapus_user(id_tele):
+    user = Pengguna.query.get(id_tele)
+    if user:
+        db.session.delete(user)
         db.session.commit()
     return redirect(url_for('dashboard'))
 
-@app.route('/blokir_member/<int:id_member>')
-def blokir_member(id_member):
-    member = Member.query.get(id_member)
-    if member:
+@app.route('/blokir_user/<id_tele>')
+def blokir_user(id_tele):
+    user = Pengguna.query.get(id_tele)
+    if user:
         # Toggle Status
-        if member.status == 'AKTIF':
-            member.status = 'BLOKIR'
+        if user.status == 'WHITELIST':
+            user.status = 'BLOKIR'
         else:
-            member.status = 'AKTIF'
+            user.status = 'WHITELIST'
         db.session.commit()
     return redirect(url_for('dashboard'))
 
 # --- API UNTUK ALAT (PICO W) ---
-# Alat menembak link ini saat ada yang tempel kartu / ketik PIN
-# Contoh: http://IP_LAPTOP:5000/api/cek_akses?kode=A1B2C3D4
+# Link: http://IP_LAPTOP:5000/api/akses?id_tele=123456&id_mesin=LOKER_1
 
-@app.route('/api/cek_akses', methods=['GET'])
+@app.route('/api/akses', methods=['GET'])
 def cek_akses():
-    kode_input = request.args.get('kode')
+    id_input = request.args.get('id_tele')
+    mesin_input = request.args.get('id_mesin') or "Loker-Utama"
     
-    # 1. Cari di Database
-    member = Member.query.filter_by(kode_akses=kode_input).first()
+    # 1. Cari User di Database
+    user = Pengguna.query.get(id_input)
     
-    if member:
-        if member.status == 'AKTIF':
-            # IZINKAN MASUK
-            catat_log(member.nama, kode_input, "SUKSES")
-            return jsonify({"hasil": "IZIN", "nama": member.nama, "pesan": "Silakan Masuk"})
+    if user:
+        if user.status == 'WHITELIST':
+            # IZINKAN & CATAT LOG
+            catat_log(user.id_telegram, user.nama_telegram, mesin_input)
+            return jsonify({"hasil": "IZIN", "nama": user.nama_telegram, "pesan": "Silakan Masuk"})
         else:
-            # DITOLAK (DIBLOKIR)
-            catat_log(member.nama, kode_input, "DITOLAK (BLOKIR)")
-            return jsonify({"hasil": "TOLAK", "pesan": "Kartu Diblokir!"})
+            # DIBLOKIR
+            return jsonify({"hasil": "TOLAK", "pesan": "ID Anda Diblokir!"})
     else:
-        # DITOLAK (TIDAK DIKENAL)
-        catat_log("UNKNOWN", kode_input, "DITOLAK (INVALID)")
-        return jsonify({"hasil": "TOLAK", "pesan": "Kartu Tidak Terdaftar"})
+        # TIDAK TERDAFTAR
+        return jsonify({"hasil": "TOLAK", "pesan": "ID Tidak Terdaftar"})
 
-def catat_log(nama, kode, status):
-    log = LogAkses(nama_member=nama, kode_akses=kode, status_akses=status)
+def catat_log(id_tele, nama, mesin):
+    log = LogRiwayat(id_telegram=id_tele, nama_telegram=nama, id_mesin=mesin)
     db.session.add(log)
     db.session.commit()
 

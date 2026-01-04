@@ -20,45 +20,45 @@
         </div>
     </nav>
 
-    <div class="container">
-        <div class="row">
-            
-            <div class="col-lg-6 mb-4">
-                <div class="card h-100">
+    <div class="container pb-5">
+        
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
                     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 fw-bold text-primary">👥 Daftar Kartu/PIN Terdaftar</h6>
-                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">+ Tambah Member</button>
+                        <h6 class="m-0 fw-bold text-primary">👥 CRUD User (Whitelist)</h6>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">+ Tambah User</button>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover mb-0 align-middle">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Nama</th>
-                                        <th>Kode Akses (RFID/PIN)</th>
-                                        <th>Status</th>
-                                        <th>Aksi</th>
+                                        <th>Nama Telegram</th>
+                                        <th>ID Tele</th>
+                                        <th>Status (White List)</th>
+                                        <th style="width: 150px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for m in members %}
+                                    {% for user in users %}
                                     <tr>
-                                        <td class="fw-bold">{{ m.nama }}</td>
-                                        <td><code class="text-dark bg-light px-2 py-1 rounded">{{ m.kode_akses }}</code></td>
+                                        <td class="fw-bold">{{ user.nama_telegram }}</td>
+                                        <td><code class="text-dark bg-light px-2 py-1 rounded">{{ user.id_telegram }}</code></td>
                                         <td>
-                                            {% if m.status == 'AKTIF' %}
-                                                <span class="badge bg-success">Aktif</span>
+                                            {% if user.status == 'WHITELIST' %}
+                                                <span class="badge bg-success">Whitelist (Aktif)</span>
                                             {% else %}
-                                                <span class="badge bg-danger">Diblokir</span>
+                                                <span class="badge bg-danger">Blokir</span>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <a href="/blokir_member/{{ m.id }}" class="btn btn-sm btn-outline-warning" title="Blokir/Buka">⏯️</a>
-                                            <a href="/hapus_member/{{ m.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus?')">🗑️</a>
+                                            <a href="/blokir_user/{{ user.id_telegram }}" class="btn btn-sm btn-outline-warning" title="Ubah Status">⏯️</a>
+                                            <a href="/hapus_user/{{ user.id_telegram }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus User ini?')">🗑️</a>
                                         </td>
                                     </tr>
                                     {% else %}
-                                    <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada data.</td></tr>
+                                    <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada user terdaftar.</td></tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
@@ -66,40 +66,35 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="col-lg-6 mb-4">
-                <div class="card h-100">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
                     <div class="card-header bg-white py-3">
-                        <h6 class="m-0 fw-bold text-dark">📜 Riwayat Akses Pintu</h6>
+                        <h6 class="m-0 fw-bold text-dark">📜 Log Riwayat</h6>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-striped mb-0 align-middle">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th>Waktu</th>
-                                        <th>Nama / Kode</th>
-                                        <th>Hasil</th>
+                                        <th>ID Tele</th>
+                                        <th>Nama Tele</th>
+                                        <th>ID Mesin</th>
+                                        <th>Waktu dan Tanggal</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for log in logs %}
                                     <tr>
-                                        <td class="small">{{ log.waktu.strftime('%d/%m %H:%M:%S') }}</td>
-                                        <td>
-                                            <div class="fw-bold">{{ log.nama_member }}</div>
-                                            <div class="small text-muted">{{ log.kode_akses }}</div>
-                                        </td>
-                                        <td>
-                                            {% if log.status_akses == 'SUKSES' %}
-                                                <span class="badge bg-success">✅ SUKSES</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">❌ {{ log.status_akses }}</span>
-                                            {% endif %}
-                                        </td>
+                                        <td><code class="text-light">{{ log.id_telegram }}</code></td>
+                                        <td class="fw-bold">{{ log.nama_telegram }}</td>
+                                        <td><span class="badge bg-secondary">{{ log.id_mesin }}</span></td>
+                                        <td>{{ log.waktu.strftime('%H:%M:%S | %d-%m-%Y') }}</td>
                                     </tr>
                                     {% else %}
-                                    <tr><td colspan="3" class="text-center py-4 text-muted">Belum ada riwayat.</td></tr>
+                                    <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada riwayat.</td></tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
@@ -107,27 +102,26 @@
                     </div>
                 </div>
             </div>
-
         </div>
+
     </div>
 
     <div class="modal fade" id="modalTambah" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Daftarkan Kartu/User Baru</h5>
+                    <h5 class="modal-title">Tambah User Baru</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="/tambah_member" method="POST">
+                <form action="/tambah_user" method="POST">
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label>Nama Pemilik</label>
-                            <input type="text" name="nama" class="form-control" placeholder="Contoh: Joy Setiawan" required>
+                            <label>Nama Telegram</label>
+                            <input type="text" name="nama_tele" class="form-control" placeholder="Contoh: Joy Setiawan" required>
                         </div>
                         <div class="mb-3">
-                            <label>Kode Akses (UID Kartu / PIN)</label>
-                            <input type="text" name="kode" class="form-control" placeholder="Contoh: A1B2C3D4 atau 1234" required>
-                            <small class="text-muted">Masukkan UID yang terbaca di alat (Scan Kartu).</small>
+                            <label>ID Tele</label>
+                            <input type="text" name="id_tele" class="form-control" placeholder="Contoh: 123456789" required>
                         </div>
                     </div>
                     <div class="modal-footer">
