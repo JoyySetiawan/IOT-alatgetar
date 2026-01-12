@@ -1,100 +1,372 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
-    <title>Admin Smart Locker</title>
-    <meta http-equiv="refresh" content="5"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Locker Dashboard</title>
+    <meta http-equiv="refresh" content="3"> 
+    
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
-        body { background-color: #f8f9fa; }
-        .card { border-radius: 10px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .bg-gradient-dark { background: linear-gradient(45deg, #212529, #343a40); }
+        :root {
+            --blue: #5e72e4;
+            --green: #2dce89;
+            --info: #11cdef;
+            --orange: #fb6340;
+            --red: #f5365c;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: #f8f9fe;
+            color: #525f7f;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+            background-color: #fff;
+            width: 250px;
+            max-height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--blue);
+            text-transform: uppercase;
+            letter-spacing: .05rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .nav-link {
+            color: rgba(0, 0, 0, .5);
+            font-weight: 600;
+            padding: .75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+            color: var(--blue);
+        }
+
+        .nav-link:hover { color: var(--blue); background-color: #f6f9fc; }
+        .nav-link.active { color: var(--blue); background-color: #f6f9fc; border-right: 3px solid var(--blue); }
+
+        .main-content { margin-left: 250px; }
+        .header { position: relative; background: linear-gradient(87deg, #2dce89 0, #2dcecc 100%) !important; padding-bottom: 8rem; padding-top: 3rem; }
+        .header-body { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .card-stats .card-body { padding: 1rem 1.5rem; }
+        .icon-shape { padding: 12px; text-align: center; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; width: 3rem; height: 3rem; }
+        
+        .bg-gradient-red { background: linear-gradient(87deg, #f5365c 0, #f56036 100%) !important; }
+        .bg-gradient-orange { background: linear-gradient(87deg, #fb6340 0, #fbb140 100%) !important; }
+        .bg-gradient-green { background: linear-gradient(87deg, #2dce89 0, #2dcecc 100%) !important; }
+        
+        /* Offline Status */
+        .status-offline {
+            background: linear-gradient(87deg, #999 0, #666 100%) !important;
+            color: white;
+        }
+        .blink-offline {
+            animation: blink-offline 1s infinite;
+        }
+        @keyframes blink-offline {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.5; }
+        }
+        .bg-gradient-info { background: linear-gradient(87deg, #11cdef 0, #1171ef 100%) !important; }
+
+        .card { border: 0; box-shadow: 0 0 2rem 0 rgba(136, 152, 170, .15); border-radius: .375rem; transition: all 0.3s ease; }
+        .card:hover { box-shadow: 0 0 3rem 0 rgba(136, 152, 170, .25); }
+
+        .table thead th { background-color: #f6f9fc; color: #8898aa; border-color: #e9ecef; text-transform: uppercase; font-size: .65rem; letter-spacing: 1px; font-weight: 600; padding: 1rem; }
+        .table td { vertical-align: middle; padding: 1rem; border-top: 1px solid #e9ecef; color: #525f7f; font-size: .8125rem; }
+        .card-header { background-color: #fff; border-bottom: 1px solid #e9ecef; padding: 1.25rem 1.5rem; }
+
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0.5; } }
+
+        .breadcrumb-dark .breadcrumb-item.active { color: rgba(255, 255, 255, 0.8); }
+        .breadcrumb-dark .breadcrumb-item a { color: rgba(255, 255, 255, 0.8); }
+        .breadcrumb-dark .breadcrumb-item a:hover { color: #fff; }
+
+        .footer { padding: 2rem 0; background-color: #f8f9fe; border-top: 1px solid #e9ecef; }
+        .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; }
+        .badge { padding: 0.5rem 0.75rem; font-weight: 600; letter-spacing: 0.5px; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .header { padding-bottom: 5rem; }
+        }
     </style>
 </head>
+
 <body>
 
-    <nav class="navbar navbar-dark bg-gradient-dark mb-4 shadow-sm">
-        <div class="container">
-            <span class="navbar-brand fw-bold">🔐 Admin Access Control</span>
-            <span class="text-white small">Smart Locker System</span>
+    <nav class="sidebar flex-column">
+        <div class="sidebar-brand">
+            <i class="fas fa-cube"></i> ARGON IoT
+        </div>
+        <div class="nav flex-column">
+            <a class="nav-link active" href="#">
+                <i class="fas fa-tv"></i> Dashboard
+            </a>
+            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#modalTambah">
+                <i class="fas fa-user-plus"></i> Tambah User
+            </a>
+            <a class="nav-link" href="#">
+                <i class="fas fa-tools"></i> Settings
+            </a>
+        </div>
+        <div class="mt-auto p-4 text-center">
+            <small class="text-muted">Kelompok 9 - UISI</small>
         </div>
     </nav>
 
-    <div class="container pb-5">
+    <div class="main-content">
         
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 fw-bold text-primary">👥 CRUD User (Whitelist)</h6>
-                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">+ Tambah User</button>
+        <div class="header">
+            <div class="container-fluid">
+                <div class="header-body">
+                    <div class="row align-items-center py-4">
+                        <div class="col-lg-6 col-7">
+                            <h6 class="h2 text-white d-inline-block mb-0">Control Panel</h6>
+                            <nav aria-label="breadcrumb" class="d-none d-md-inline-block ml-md-4">
+                                <ol class="breadcrumb breadcrumb-links breadcrumb-dark">
+                                    <li class="breadcrumb-item"><a href="#"><i class="fas fa-home"></i></a></li>
+                                    <li class="breadcrumb-item"><a href="#">Dashboards</a></li>
+                                    <li class="breadcrumb-item active" aria-current="page">Default</li>
+                                </ol>
+                            </nav>
+                        </div>
                     </div>
-                    <div class="card-body p-0">
+
+                    <div class="row">
+                        
+                        <div class="col-xl-4 col-md-6">
+                            <div class="card card-stats mb-4 mb-xl-0 {% if not hardware.is_online %}blink-offline{% endif %}">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col">
+                                            <h5 class="card-title text-uppercase text-muted mb-0">Status Pintu</h5>
+                                            {% if not hardware.is_online %}
+                                                <span class="h2 font-weight-bold mb-0 text-danger">
+                                                    🔴 OFFLINE
+                                                </span>
+                                            {% else %}
+                                                <span class="h2 font-weight-bold mb-0">
+                                                    {% if hardware.solenoid == 'TERBUKA' %}
+                                                        TERBUKA
+                                                    {% else %}
+                                                        TERKUNCI
+                                                    {% endif %}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="icon-shape text-white shadow
+                                                {% if not hardware.is_online %} status-offline {% elif hardware.solenoid == 'TERBUKA' %} bg-gradient-green {% else %} bg-gradient-red {% endif %}">
+                                                <i class="fas fa-door-open"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 mb-0 text-muted text-sm">
+                                        <span class="text-nowrap">Solenoid Lock System</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4 col-md-6">
+                            <div class="card card-stats mb-4 mb-xl-0 {% if not hardware.is_online %}blink-offline{% endif %}">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col">
+                                            <h5 class="card-title text-uppercase text-muted mb-0">Keamanan</h5>
+                                            {% if not hardware.is_online %}
+                                                <span class="h2 font-weight-bold mb-0 text-danger">
+                                                    🔴 OFFLINE
+                                                </span>
+                                            {% else %}
+                                                <span class="h2 font-weight-bold mb-0">
+                                                    {% if hardware.getaran == 'BAHAYA' %}
+                                                        <span class="text-danger blink">BAHAYA!</span>
+                                                    {% else %}
+                                                        AMAN
+                                                    {% endif %}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="icon-shape text-white shadow
+                                                {% if not hardware.is_online %} status-offline {% else %} bg-gradient-info {% endif %}">
+                                                <i class="fas fa-shield-alt"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 mb-0 text-muted text-sm">
+                                        <span class="text-nowrap">Sensor: SW-420</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4 col-md-6">
+                            <div class="card card-stats mb-4 mb-xl-0 {% if not hardware.is_online %}blink-offline{% endif %}">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col">
+                                            <h5 class="card-title text-uppercase text-muted mb-0">Alarm</h5>
+                                            {% if not hardware.is_online %}
+                                                <span class="h2 font-weight-bold mb-0 text-danger">
+                                                    🔴 OFFLINE
+                                                </span>
+                                            {% else %}
+                                                <span class="h2 font-weight-bold mb-0">
+                                                    {% if hardware.buzzer == 'MENYALA' or hardware.buzzer == 'ON' %}
+                                                        <span class="text-danger blink">BUNYI</span>
+                                                    {% else %}
+                                                        MATI
+                                                    {% endif %}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="icon-shape text-white shadow
+                                                {% if not hardware.is_online %} status-offline {% else %} bg-gradient-orange {% endif %}">
+                                                <i class="fas fa-bell"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 mb-0 text-muted text-sm">
+                                        <span class="text-success mr-2"><i class="fa fa-clock"></i> Last Seen:</span>
+                                        <span class="text-nowrap">{{ hardware.last_seen }}</span>
+                                        {% if not hardware.is_online %}
+                                            <br><span class="badge bg-danger">OFFLINE</span>
+                                        {% else %}
+                                            <br><span class="badge bg-success">ONLINE</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-fluid mt--5"> 
+            
+            <div class="row">
+                <div class="col-xl-7 mb-5 mb-xl-0">
+                    <div class="card shadow">
+                        <div class="card-header border-0">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <h3 class="mb-0">Users Whitelist</h3>
+                                </div>
+                                <div class="col text-end">
+                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
+                                        <i class="fas fa-plus"></i> Tambah
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         <div class="table-responsive">
-                            <table class="table table-hover mb-0 align-middle">
-                                <thead class="table-light">
+                            <table class="table align-items-center table-flush">
+                                <thead class="thead-light">
                                     <tr>
-                                        <th>Nama Telegram</th>
-                                        <th>ID Tele</th>
-                                        <th>Status (White List)</th>
-                                        <th style="width: 150px;">Aksi</th>
+                                        <th scope="col">Nama User</th>
+                                        <th scope="col">ID Telegram</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for user in users %}
                                     <tr>
-                                        <td class="fw-bold">{{ user.nama_telegram }}</td>
-                                        <td><code class="text-dark bg-light px-2 py-1 rounded">{{ user.id_telegram }}</code></td>
+                                        <th scope="row">
+                                            <i class="fas fa-user-circle"></i> {{ user.nama_telegram }}
+                                        </th>
+                                        <td>
+                                            <code>{{ user.id_telegram }}</code>
+                                        </td>
                                         <td>
                                             {% if user.status == 'WHITELIST' %}
-                                                <span class="badge bg-success">Whitelist (Aktif)</span>
+                                                <span class="badge bg-success">AKTIF</span>
                                             {% else %}
-                                                <span class="badge bg-danger">Blokir</span>
+                                                <span class="badge bg-danger">BLOKIR</span>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <a href="/blokir_user/{{ user.id_telegram }}" class="btn btn-sm btn-outline-warning" title="Ubah Status">⏯️</a>
-                                            <a href="/hapus_user/{{ user.id_telegram }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus User ini?')">🗑️</a>
+                                            <a href="/blokir_user/{{ user.id_telegram }}" class="btn btn-sm btn-warning" title="Toggle Status"><i class="fas fa-ban"></i></a>
+                                            <a href="/hapus_user/{{ user.id_telegram }}" class="btn btn-sm btn-danger" onclick="return confirm('Hapus?')" title="Hapus User"><i class="fas fa-trash"></i></a>
                                         </td>
                                     </tr>
                                     {% else %}
-                                    <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada user terdaftar.</td></tr>
+                                    <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada data user.</td></tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-white py-3">
-                        <h6 class="m-0 fw-bold text-dark">📜 Log Riwayat</h6>
-                    </div>
-                    <div class="card-body p-0">
+                <div class="col-xl-5">
+                    <div class="card shadow">
+                        <div class="card-header border-0">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <h3 class="mb-0">Riwayat Akses</h3>
+                                </div>
+                                <div class="col text-end">
+                                    <a href="#!" class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> Lihat</a>
+                                </div>
+                            </div>
+                        </div>
                         <div class="table-responsive">
-                            <table class="table table-striped mb-0 align-middle">
-                                <thead class="table-dark">
+                            <table class="table align-items-center table-flush">
+                                <thead class="thead-light">
                                     <tr>
-                                        <th>ID Tele</th>
-                                        <th>Nama Tele</th>
-                                        <th>ID Mesin</th>
-                                        <th>Waktu dan Tanggal</th>
+                                        <th scope="col">User</th>
+                                        <th scope="col">Mesin</th>
+                                        <th scope="col">Waktu</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for log in logs %}
                                     <tr>
-                                        <td><code class="text-light">{{ log.id_telegram }}</code></td>
-                                        <td class="fw-bold">{{ log.nama_telegram }}</td>
-                                        <td><span class="badge bg-secondary">{{ log.id_mesin }}</span></td>
-                                        <td>{{ log.waktu.strftime('%H:%M:%S | %d-%m-%Y') }}</td>
+                                        <th scope="row">
+                                            <i class="fas fa-user"></i> {{ log.nama_telegram }}
+                                        </th>
+                                        <td>
+                                            <span class="badge bg-light text-dark">{{ log.id_mesin }}</span>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-clock text-muted"></i> {{ log.waktu.strftime('%H:%M:%S') }}
+                                        </td>
                                     </tr>
                                     {% else %}
-                                    <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada riwayat.</td></tr>
+                                    <tr><td colspan="3" class="text-center py-4 text-muted">Kosong.</td></tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
@@ -102,8 +374,17 @@
                     </div>
                 </div>
             </div>
-        </div>
 
+            <footer class="footer pt-5">
+                <div class="row align-items-center justify-content-lg-between">
+                    <div class="col-lg-6">
+                        <div class="copyright text-center text-lg-left text-muted">
+                            &copy; 2026 <a href="#" class="font-weight-bold ml-1" target="_blank">Kelompok 9 IoT UISI</a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
     </div>
 
     <div class="modal fade" id="modalTambah" tabindex="-1">
