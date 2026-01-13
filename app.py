@@ -134,23 +134,40 @@ def cek_akses():
         status_perangkat['buzzer'] = "MENYALA"
         return jsonify({"hasil": "TOLAK", "pesan": "ID Tidak Terdaftar"})
 
-# --- API 2: [BARU] PICO MELAPORKAN STATUS HARDWARE ---
-# Pico menembak: /api/update_status?alat=getaran&status=BAHAYA
+# --- API 2: PICO MELAPORKAN STATUS HARDWARE ---
 @app.route('/api/update_status', methods=['GET'])
 def update_status():
-    alat = request.args.get('alat')     # solenoid / buzzer / getaran
-    status = request.args.get('status') # ON / OFF / BAHAYA / AMAN
+    alat = request.args.get('alat')     # solenoid
+    status = request.args.get('status') # TERBUKA / TERKUNCI
     
-    # UPDATE: Mark Pico as ONLINE
+    # Update Status Online Pico
     status_perangkat['last_update_time'] = datetime.now()
     status_perangkat['is_online'] = True
     status_perangkat['last_seen'] = datetime.now().strftime('%H:%M:%S')
     
     if alat and status:
-        # Update memori server
+        # 1. Update Memori Real-time
         if alat in status_perangkat:
+            status_sebelumnya = status_perangkat[alat]
             status_perangkat[alat] = status
-        return jsonify({"msg": "Status Updated"})
+
+            # 2. LOGIC LOGGING (HANYA PINTU)
+            # Bagian Getaran & Buzzer kita matikan (comment) dulu
+            
+            # --- KASUS A: PINTU (Solenoid) ---
+            if alat == 'solenoid':
+                if status != status_sebelumnya: 
+                    keterangan = f"Pintu {status}"
+                    catat_log("SYSTEM-DOOR", keterangan, "Loker-Utama")
+
+            # --- KASUS B & C (DIMATIKAN SEMENTARA) ---
+            # elif alat == 'getaran' and status == 'BAHAYA':
+            #     catat_log("SENSOR-GETAR", "⚠️ Terdeteksi Getaran!", "Loker-Utama")
+            # elif alat == 'buzzer' and status == 'MENYALA':
+            #     catat_log("SYSTEM-ALARM", "📢 Alarm Berbunyi", "Loker-Utama")
+
+        return jsonify({"msg": "Status Recorded"})
+    
     return jsonify({"msg": "No Data"})
 
 def catat_log(id_tele, nama, mesin):
