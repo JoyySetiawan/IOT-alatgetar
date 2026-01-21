@@ -112,6 +112,8 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Perintah:\n"
         "/start - tampilkan tombol kontrol\n"
+        "/open - buka loker langsung (cepat)\n"
+        "/close - tutup loker langsung (cepat)\n"
         "/myid - lihat telegram ID kamu (untuk dimasukkan ke whitelist web)\n"
         "/register - daftar akun baru ke database\n"
         "/help - bantuan"
@@ -150,6 +152,69 @@ async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = f"{response}{detail}"
     await update.message.reply_text(text, reply_markup=build_keyboard())
+
+
+async def perform_action(update: Update, action: str):
+    """Helper function untuk perform open/close action"""
+    user = update.effective_user
+    user_id = user.id
+    username = user.username or user.full_name or str(user_id)
+
+    ok, wait = _cooldown_ok(user_id)
+    if not ok:
+        await update.message.reply_text(f"⏳ Tunggu {wait} detik sebelum aksi lagi.")
+        return
+
+    # Tampilkan status processing
+    msg = await update.message.reply_text(
+        f"⏳ Memproses: {('BUKA' if action == 'open' else 'TUTUP')} ...",
+        reply_markup=build_keyboard(),
+    )
+
+    # Payload
+    payload = {
+        "user_id": str(user_id),
+        "username": username,
+        "id_mesin": ID_MESIN_DEFAULT,
+        "source": "telegram_bot",
+        "command": "unlock" if action == "open" else "lock",
+    }
+
+    url = API_OPEN if action == "open" else API_CLOSE
+    status_code, response_msg = await call_flask(url, payload, API_KEY)
+
+    # Format response
+    if status_code == 0:
+        prefix = "⚠️"
+        detail = "Gagal menghubungi server Flask."
+    elif 200 <= status_code < 300:
+        prefix = "✅"
+        detail = "Berhasil."
+    elif status_code in (401, 403):
+        prefix = "⛔"
+        detail = "Tidak diizinkan (cek API key / whitelist DB)."
+    else:
+        prefix = "❌"
+        detail = "Gagal."
+
+    result_text = (
+        f"{prefix} {detail}\n"
+        f"Aksi: {action}\n"
+        f"HTTP: {status_code}\n"
+        f"Response: {response_msg}"
+    )
+
+    await msg.edit_text(result_text, reply_markup=build_keyboard())
+
+
+async def open_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Command /open - buka loker langsung"""
+    await perform_action(update, "open")
+
+
+async def close_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Command /close - tutup loker langsung"""
+    await perform_action(update, "close")
 
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -224,6 +289,8 @@ def main():
 
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("open", open_cmd))
+    app.add_handler(CommandHandler("close", close_cmd))
     app.add_handler(CommandHandler("myid", myid))
     app.add_handler(CommandHandler("register", register_cmd))
     app.add_handler(CommandHandler("help", help_cmd))
