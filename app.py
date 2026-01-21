@@ -78,7 +78,42 @@ def dashboard():
     check_pico_online()
     return render_template('dashboard.html', users=data_user, logs=data_log, hardware=status_perangkat)
 
-# --- API UNTUK BOT TELEGRAM MEMBUKA LOKER ---
+# --- [PERBAIKAN] ROUTE TOMBOL HARD OPEN/CLOSE ---
+@app.route('/remote/<action>')
+def remote_control(action):
+    if action == 'BUKA':
+        status_perangkat['solenoid'] = 'TERBUKA'
+        command_queue['action'] = 'BUKA'
+        catat_log("ADMIN WEB", "Membuka Pintu (Remote)", "Web-Dashboard")
+    elif action == 'KUNCI':
+        status_perangkat['solenoid'] = 'TERKUNCI'
+        command_queue['action'] = 'KUNCI'
+        catat_log("ADMIN WEB", "Mengunci Pintu (Remote)", "Web-Dashboard")
+    return redirect(url_for('dashboard'))
+
+# --- ROUTE API UNTUK BOT TELEGRAM ---
+@app.route('/register', methods=['POST'])
+def register_api():
+    if request.headers.get('X-API-KEY') != API_KEY_SECRET:
+        return jsonify({"message": "Akses Ditolak"}), 401
+    
+    data = request.get_json()
+    id_tele = data.get('user_id')
+    nama_tele = data.get('username')
+
+    user = Pengguna.query.get(id_tele)
+    if user:
+        return jsonify({"message": "User sudah terdaftar"}), 409
+    
+    try:
+        new_user = Pengguna(id_telegram=id_tele, nama_telegram=nama_tele, status='WHITELIST')
+        db.session.add(new_user)
+        db.session.commit()
+        catat_log(id_tele, f"Register via Bot ({nama_tele})", "System")
+        return jsonify({"message": "Registrasi Berhasil"}), 201
+    except Exception as e:
+        return jsonify({"message": f"Error: {str(e)}"}), 500
+
 @app.route('/open', methods=['POST'])
 def open_locker_api():
     if request.headers.get('X-API-KEY') != API_KEY_SECRET:
@@ -90,7 +125,7 @@ def open_locker_api():
     
     user = Pengguna.query.get(user_id)
     if not user:
-        return jsonify({"message": "ID Kamu Belum Terdaftar"}), 404
+        return jsonify({"message": "ID Belum Terdaftar. Ketik /register di bot."}), 404
     
     if user.status != 'WHITELIST':
         return jsonify({"message": "ID Kamu DIBLOKIR"}), 403
@@ -101,7 +136,6 @@ def open_locker_api():
     
     return jsonify({"message": "Loker Berhasil Dibuka!"}), 200
 
-# --- API UNTUK BOT TELEGRAM MENUTUP LOKER ---
 @app.route('/close', methods=['POST'])
 def close_locker_api():
     if request.headers.get('X-API-KEY') != API_KEY_SECRET:
@@ -117,7 +151,7 @@ def close_locker_api():
     
     return jsonify({"message": "Loker Berhasil Dikunci!"}), 200
 
-# --- API UNTUK ALAT (PICO/ESP32) ---
+# --- API ALAT (PICO/ESP32) ---
 @app.route('/api/get_command', methods=['GET'])
 def get_command():
     update_last_seen()
@@ -162,17 +196,15 @@ def hapus_user(id_tele):
         db.session.commit()
     return redirect(url_for('dashboard'))
 
-# --- MAIN EXECUTION ---
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     
-    # 1. Jalankan Bot Telegram di Thread
+    # 1. Jalankan Bot
     bot_thread = threading.Thread(target=start_bot)
     bot_thread.daemon = True 
     bot_thread.start()
 
-    # 2. Jalankan Flask Web Server
+    # 2. Jalankan Flask
     print("🚀 Menjalankan Server IoT + Bot Telegram...")
-    # use_reloader=False PENTING di Windows agar bot tidak jalan 2x
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
