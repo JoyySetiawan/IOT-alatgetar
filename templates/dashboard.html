@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,408 +11,249 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
-        :root {
-            --blue: #5e72e4;
-            --green: #2dce89;
-            --info: #11cdef;
-            --orange: #fb6340;
-            --red: #f5365c;
-        }
+        :root { --blue: #5e72e4; --green: #2dce89; --red: #f5365c; --gray: #8898aa; }
+        body { font-family: 'Open Sans', sans-serif; background-color: #f8f9fe; }
 
-        body {
-            font-family: 'Open Sans', sans-serif;
-            background-color: #f8f9fe;
-            color: #525f7f;
-        }
-
-        .sidebar {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            z-index: 100;
-            padding: 48px 0 0;
-            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
-            background-color: #fff;
-            width: 250px;
-            max-height: 100vh;
-            overflow-y: auto;
-        }
-
-        .sidebar-brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--blue);
-            text-transform: uppercase;
-            letter-spacing: .05rem;
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .nav-link {
-            color: rgba(0, 0, 0, .5);
-            font-weight: 600;
-            padding: .75rem 1.5rem;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link i {
-            margin-right: 10px;
-            font-size: 1.1rem;
-            color: var(--blue);
-        }
-
-        .nav-link:hover { color: var(--blue); background-color: #f6f9fc; }
-        .nav-link.active { color: var(--blue); background-color: #f6f9fc; border-right: 3px solid var(--blue); }
-
-        .main-content { margin-left: 250px; }
-        .header { position: relative; background: linear-gradient(87deg, #2dce89 0, #2dcecc 100%) !important; padding-bottom: 8rem; padding-top: 3rem; }
-        .header-body { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .header { background: linear-gradient(87deg, #2dce89 0, #2dcecc 100%); padding-bottom: 8rem; padding-top: 3rem; }
         .card-stats .card-body { padding: 1rem 1.5rem; }
-        .icon-shape { padding: 12px; text-align: center; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; width: 3rem; height: 3rem; }
+        .icon-shape { width: 3rem; height: 3rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; }
         
-        .bg-gradient-red { background: linear-gradient(87deg, #f5365c 0, #f56036 100%) !important; }
-        .bg-gradient-orange { background: linear-gradient(87deg, #fb6340 0, #fbb140 100%) !important; }
-        .bg-gradient-green { background: linear-gradient(87deg, #2dce89 0, #2dcecc 100%) !important; }
+        .bg-gradient-green { background: linear-gradient(87deg, #2dce89 0, #2dcecc 100%); }
+        .bg-gradient-red { background: linear-gradient(87deg, #f5365c 0, #f56036 100%); }
+        .bg-gradient-gray { background: linear-gradient(87deg, #adb5bd 0, #8898aa 100%); }
+        .bg-gradient-blue { background: linear-gradient(87deg, #11cdef 0, #1171ef 100%); }
+
+        .status-online { color: #2dce89; font-weight: bold; }
+        .status-offline { color: #f5365c; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
         
-        /* Offline Status */
-        .status-offline {
-            background: linear-gradient(87deg, #999 0, #666 100%) !important;
-            color: white;
-        }
-        .blink-offline {
-            animation: blink-offline 1s infinite;
-        }
-        @keyframes blink-offline {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.5; }
-        }
-        .bg-gradient-info { background: linear-gradient(87deg, #11cdef 0, #1171ef 100%) !important; }
-
-        .card { border: 0; box-shadow: 0 0 2rem 0 rgba(136, 152, 170, .15); border-radius: .375rem; transition: all 0.3s ease; }
-        .card:hover { box-shadow: 0 0 3rem 0 rgba(136, 152, 170, .25); }
-
-        .table thead th { background-color: #f6f9fc; color: #8898aa; border-color: #e9ecef; text-transform: uppercase; font-size: .65rem; letter-spacing: 1px; font-weight: 600; padding: 1rem; }
-        .table td { vertical-align: middle; padding: 1rem; border-top: 1px solid #e9ecef; color: #525f7f; font-size: .8125rem; }
-        .card-header { background-color: #fff; border-bottom: 1px solid #e9ecef; padding: 1.25rem 1.5rem; }
-
-        .blink { animation: blinker 1s linear infinite; }
-        @keyframes blinker { 50% { opacity: 0.5; } }
-
-        .breadcrumb-dark .breadcrumb-item.active { color: rgba(255, 255, 255, 0.8); }
-        .breadcrumb-dark .breadcrumb-item a { color: rgba(255, 255, 255, 0.8); }
-        .breadcrumb-dark .breadcrumb-item a:hover { color: #fff; }
-
-        .footer { padding: 2rem 0; background-color: #f8f9fe; border-top: 1px solid #e9ecef; }
-        .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; }
-        .badge { padding: 0.5rem 0.75rem; font-weight: 600; letter-spacing: 0.5px; }
-
-        @media (max-width: 768px) {
-            .sidebar { display: none; }
-            .main-content { margin-left: 0; }
-            .header { padding-bottom: 5rem; }
-        }
+        /* Table Styles */
+        .table thead th { background-color: #f6f9fc; color: #8898aa; border-color: #e9ecef; }
+        .table td { border-top: 1px solid #e9ecef; color: #525f7f; }
+        .card { border: 0; box-shadow: 0 0 2rem 0 rgba(136, 152, 170, .15); }
     </style>
 </head>
 
 <body>
+    <div class="header">
+        <div class="container-fluid">
+            <div class="header-body">
+                <div class="row py-4">
+                    <div class="col-12">
+                        <h6 class="h2 text-white d-inline-block mb-0"><i class="fas fa-microchip"></i> IoT Control Panel</h6>
+                    </div>
+                </div>
 
-    <nav class="sidebar flex-column">
-        <div class="sidebar-brand">
-            <i class="fas fa-cube"></i> ARGON IoT
-        </div>
-        <div class="nav flex-column">
-            <a class="nav-link active" href="#">
-                <i class="fas fa-tv"></i> Dashboard
-            </a>
-            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#modalTambah">
-                <i class="fas fa-user-plus"></i> Tambah User
-            </a>
-            <a class="nav-link" href="#">
-                <i class="fas fa-tools"></i> Settings
-            </a>
-        </div>
-        <div class="mt-auto p-4 text-center">
-            <small class="text-muted">Kelompok 9 - UISI</small>
-        </div>
-    </nav>
+                <div class="row">
+                    <div class="col-xl-4 col-md-6">
+                        <div class="card card-stats mb-4 mb-xl-0">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col">
+                                        <h5 class="card-title text-uppercase text-muted mb-0">Status Pintu</h5>
+                                        <span class="h2 font-weight-bold mb-0">
+                                            {% if hardware.solenoid == 'TERBUKA' %} TERBUKA {% else %} TERKUNCI {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="icon-shape shadow {% if hardware.solenoid == 'TERBUKA' %} bg-gradient-green {% else %} bg-gradient-red {% endif %}">
+                                            <i class="fas fa-door-open"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-    <div class="main-content">
+                    <div class="col-xl-4 col-md-6">
+                        <div class="card card-stats mb-4 mb-xl-0">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col">
+                                        <h5 class="card-title text-uppercase text-muted mb-0">Keamanan</h5>
+                                        <span class="h2 font-weight-bold mb-0">
+                                            {% if hardware.getaran == 'BAHAYA' %} 
+                                                <span class="text-danger">BAHAYA!</span> 
+                                            {% else %} 
+                                                AMAN 
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="icon-shape shadow {% if hardware.getaran == 'BAHAYA' %} bg-gradient-red {% else %} bg-gradient-blue {% endif %}">
+                                            <i class="fas fa-shield-alt"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-4 col-md-6">
+                        <div class="card card-stats mb-4 mb-xl-0">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col">
+                                        <h5 class="card-title text-uppercase text-muted mb-0">Koneksi Alat</h5>
+                                        <span class="h2 font-weight-bold mb-0">
+                                            {% if hardware.is_online %}
+                                                <span class="status-online">ONLINE</span>
+                                            {% else %}
+                                                <span class="status-offline">OFFLINE</span>
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="icon-shape shadow {% if hardware.is_online %} bg-gradient-green {% else %} bg-gradient-gray {% endif %}">
+                                            <i class="fas fa-wifi"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="mt-3 mb-0 text-muted text-sm">
+                                    <i class="far fa-clock"></i> Last Seen: {{ hardware.last_seen }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt--5">
         
-        <div class="header">
-            <div class="container-fluid">
-                <div class="header-body">
-                    <div class="row align-items-center py-4">
-                        <div class="col-lg-6 col-7">
-                            <h6 class="h2 text-white d-inline-block mb-0">Control Panel</h6>
-                            <nav aria-label="breadcrumb" class="d-none d-md-inline-block ml-md-4">
-                                <ol class="breadcrumb breadcrumb-links breadcrumb-dark">
-                                    <li class="breadcrumb-item"><a href="#"><i class="fas fa-home"></i></a></li>
-                                    <li class="breadcrumb-item"><a href="#">Dashboards</a></li>
-                                    <li class="breadcrumb-item active" aria-current="page">Default</li>
-                                </ol>
-                            </nav>
-                        </div>
+        <div class="row mb-4">
+            <div class="col-xl-12">
+                <div class="card shadow">
+                    <div class="card-header border-0">
+                        <h3 class="mb-0">Remote Control (Tanpa PIN)</h3>
                     </div>
-
-                    <div class="row">
-                        
-                        <div class="col-xl-4 col-md-6">
-                            <div class="card card-stats mb-4 mb-xl-0 {% if not hardware.is_online %}blink-offline{% endif %}">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col">
-                                            <h5 class="card-title text-uppercase text-muted mb-0">Status Pintu</h5>
-                                            {% if not hardware.is_online %}
-                                                <span class="h2 font-weight-bold mb-0 text-danger">
-                                                    🔴 OFFLINE
-                                                </span>
-                                            {% else %}
-                                                <span class="h2 font-weight-bold mb-0">
-                                                    {% if hardware.solenoid == 'TERBUKA' %}
-                                                        TERBUKA
-                                                    {% else %}
-                                                        TERKUNCI
-                                                    {% endif %}
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="icon-shape text-white shadow
-                                                {% if not hardware.is_online %} status-offline {% elif hardware.solenoid == 'TERBUKA' %} bg-gradient-green {% else %} bg-gradient-red {% endif %}">
-                                                <i class="fas fa-door-open"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="mt-3 mb-0 text-muted text-sm">
-                                        <span class="text-nowrap">Solenoid Lock System</span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-xl-4 col-md-6">
-                            <div class="card card-stats mb-4 mb-xl-0 {% if not hardware.is_online %}blink-offline{% endif %}">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col">
-                                            <h5 class="card-title text-uppercase text-muted mb-0">Keamanan</h5>
-                                            {% if not hardware.is_online %}
-                                                <span class="h2 font-weight-bold mb-0 text-danger">
-                                                    🔴 OFFLINE
-                                                </span>
-                                            {% else %}
-                                                <span class="h2 font-weight-bold mb-0">
-                                                    {% if hardware.getaran == 'BAHAYA' %}
-                                                        <span class="text-danger blink">BAHAYA!</span>
-                                                    {% else %}
-                                                        AMAN
-                                                    {% endif %}
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="icon-shape text-white shadow
-                                                {% if not hardware.is_online %} status-offline {% else %} bg-gradient-info {% endif %}">
-                                                <i class="fas fa-shield-alt"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="mt-3 mb-0 text-muted text-sm">
-                                        <span class="text-nowrap">Sensor: SW-420</span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-xl-4 col-md-6">
-                            <div class="card card-stats mb-4 mb-xl-0 {% if not hardware.is_online %}blink-offline{% endif %}">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col">
-                                            <h5 class="card-title text-uppercase text-muted mb-0">Alarm</h5>
-                                            {% if not hardware.is_online %}
-                                                <span class="h2 font-weight-bold mb-0 text-danger">
-                                                    🔴 OFFLINE
-                                                </span>
-                                            {% else %}
-                                                <span class="h2 font-weight-bold mb-0">
-                                                    {% if hardware.buzzer == 'MENYALA' or hardware.buzzer == 'ON' %}
-                                                        <span class="text-danger blink">BUNYI</span>
-                                                    {% else %}
-                                                        MATI
-                                                    {% endif %}
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="icon-shape text-white shadow
-                                                {% if not hardware.is_online %} status-offline {% else %} bg-gradient-orange {% endif %}">
-                                                <i class="fas fa-bell"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="mt-3 mb-0 text-muted text-sm">
-                                        <span class="text-success mr-2"><i class="fa fa-clock"></i> Last Seen:</span>
-                                        <span class="text-nowrap">{{ hardware.last_seen }}</span>
-                                        {% if not hardware.is_online %}
-                                            <br><span class="badge bg-danger">OFFLINE</span>
-                                        {% else %}
-                                            <br><span class="badge bg-success">ONLINE</span>
-                                        {% endif %}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
+                    <div class="card-body text-center">
+                        <p>Klik tombol di bawah untuk mengontrol pintu secara manual dari website.</p>
+                        <a href="/remote/BUKA" class="btn btn-success btn-lg mx-2">
+                            <i class="fas fa-lock-open"></i> BUKA PINTU
+                        </a>
+                        <a href="/remote/KUNCI" class="btn btn-danger btn-lg mx-2">
+                            <i class="fas fa-lock"></i> KUNCI PINTU
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="container-fluid mt--5"> 
+        <div class="row">
             
-            <div class="row">
-                <div class="col-xl-7 mb-5 mb-xl-0">
-                    <div class="card shadow">
-                        <div class="card-header border-0">
-                            <div class="row align-items-center">
-                                <div class="col">
-                                    <h3 class="mb-0">Users Whitelist</h3>
-                                </div>
-                                <div class="col text-end">
-                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
-                                        <i class="fas fa-plus"></i> Tambah
-                                    </button>
-                                </div>
+            <div class="col-xl-7 mb-5 mb-xl-0">
+                <div class="card shadow">
+                    <div class="card-header border-0">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h3 class="mb-0">Daftar Pengguna</h3>
                             </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table align-items-center table-flush">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th scope="col">Nama User</th>
-                                        <th scope="col">ID Telegram</th>
-                                        <th scope="col">Status</th>
-                                        <th scope="col">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for user in users %}
-                                    <tr>
-                                        <th scope="row">
-                                            <i class="fas fa-user-circle"></i> {{ user.nama_telegram }}
-                                        </th>
-                                        <td>
-                                            <code>{{ user.id_telegram }}</code>
-                                        </td>
-                                        <td>
-                                            {% if user.status == 'WHITELIST' %}
-                                                <span class="badge bg-success">AKTIF</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">BLOKIR</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <a href="/blokir_user/{{ user.id_telegram }}" class="btn btn-sm btn-warning" title="Toggle Status"><i class="fas fa-ban"></i></a>
-                                            <a href="/hapus_user/{{ user.id_telegram }}" class="btn btn-sm btn-danger" onclick="return confirm('Hapus?')" title="Hapus User"><i class="fas fa-trash"></i></a>
-                                        </td>
-                                    </tr>
-                                    {% else %}
-                                    <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada data user.</td></tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                            <div class="col text-end">
+                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">Tambah</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="col-xl-5">
-                    <div class="card shadow">
-                        <div class="card-header border-0">
-                            <div class="row align-items-center">
-                                <div class="col">
-                                    <h3 class="mb-0">Riwayat Akses</h3>
-                                </div>
-                                <div class="col text-end">
-                                    <a href="#!" class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> Lihat</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table align-items-center table-flush">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th scope="col">User</th>
-                                        <th scope="col">Mesin</th>
-                                        <th scope="col">Waktu</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for log in logs %}
-                                    <tr>
-                                        <th scope="row">
-                                            <i class="fas fa-user"></i> {{ log.nama_telegram }}
-                                        </th>
-                                        <td>
-                                            <span class="badge bg-light text-dark">{{ log.id_mesin }}</span>
-                                        </td>
-                                        <td>
-                                            <i class="fas fa-clock text-muted"></i> {{ log.waktu.strftime('%H:%M:%S') }}
-                                        </td>
-                                    </tr>
-                                    {% else %}
-                                    <tr><td colspan="3" class="text-center py-4 text-muted">Kosong.</td></tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table align-items-center table-flush">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Nama</th>
+                                    <th>ID / PIN</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.nama_telegram }}</td>
+                                    <td>{{ user.id_telegram }}</td>
+                                    <td>
+                                        <span class="badge {% if user.status == 'WHITELIST' %} bg-success {% else %} bg-danger {% endif %}">
+                                            {{ user.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="/hapus_user/{{ user.id_telegram }}" class="btn btn-sm btn-danger">Hapus</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            <footer class="footer pt-5">
-                <div class="row align-items-center justify-content-lg-between">
-                    <div class="col-lg-6">
-                        <div class="copyright text-center text-lg-left text-muted">
-                            &copy; 2026 <a href="#" class="font-weight-bold ml-1" target="_blank">Kelompok 9 IoT UISI</a>
-                        </div>
+            <div class="col-xl-5">
+                <div class="card shadow">
+                    <div class="card-header border-0">
+                        <h3 class="mb-0">Riwayat Akses</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-items-center table-flush">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Keterangan</th>
+                                    <th>ID User</th>
+                                    <th>Waktu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>
+                                        {% if 'PIN BENAR' in log.nama_telegram %}
+                                            <span class="text-success font-weight-bold"><i class="fas fa-check-circle"></i> {{ log.nama_telegram }}</span>
+                                        {% elif 'PIN SALAH' in log.nama_telegram %}
+                                            <span class="text-danger font-weight-bold"><i class="fas fa-times-circle"></i> {{ log.nama_telegram }}</span>
+                                        {% elif 'BAHAYA' in log.nama_telegram %}
+                                            <span class="text-danger font-weight-bold blink"><i class="fas fa-exclamation-triangle"></i> {{ log.nama_telegram }}</span>
+                                        {% else %}
+                                            {{ log.nama_telegram }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ log.id_telegram }}</td>
+                                    <td>{{ log.waktu.strftime('%H:%M:%S') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            </footer>
+            </div>
+
         </div>
     </div>
 
     <div class="modal fade" id="modalTambah" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Tambah User Baru</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
                 <form action="/tambah_user" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Tambah User</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label>Nama Telegram</label>
-                            <input type="text" name="nama_tele" class="form-control" placeholder="Contoh: Joy Setiawan" required>
+                            <label>Nama</label>
+                            <input type="text" name="nama_tele" class="form-control" required>
                         </div>
                         <div class="mb-3">
-                            <label>ID Tele</label>
-                            <input type="text" name="id_tele" class="form-control" placeholder="Contoh: 123456789" required>
+                            <label>ID / PIN</label>
+                            <input type="text" name="id_tele" class="form-control" required>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                         <button type="submit" class="btn btn-primary">Simpan</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
