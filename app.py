@@ -1,6 +1,10 @@
+import threading
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy 
 from datetime import datetime
+
+# Import fungsi bot dari file bot.py
+from bot import start_bot
 
 app = Flask(__name__)
 
@@ -9,6 +13,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database_loker.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+# --- KONFIGURASI KEAMANAN ---
+API_KEY_SECRET = "MY_SECRET_API_KEY"
 
 # --- TABEL USER ---
 class Pengguna(db.Model):
@@ -33,20 +40,25 @@ status_perangkat = {
     "is_online": False
 }
 
-# [BARU] Variabel untuk menyimpan perintah Remote Control
 command_queue = {
-    "action": None  # Isinya nanti 'BUKA' atau 'KUNCI'
+    "action": None 
 }
 
-OFFLINE_TIMEOUT = 15 # Detik (Sudah diperbaiki)
+OFFLINE_TIMEOUT = 15 
 
-# --- HALAMAN DASHBOARD ---
-@app.route('/')
-def dashboard():
-    data_user = Pengguna.query.all()
-    data_log = LogRiwayat.query.order_by(LogRiwayat.waktu.desc()).limit(20).all()
-    check_pico_online()
-    return render_template('dashboard.html', users=data_user, logs=data_log, hardware=status_perangkat)
+# --- FUNGSI BANTUAN ---
+def update_last_seen():
+    status_perangkat['last_update_time'] = datetime.now()
+    status_perangkat['is_online'] = True
+    status_perangkat['last_seen'] = datetime.now().strftime('%H:%M:%S')
+
+def catat_log(id_tele, keterangan, mesin):
+    try:
+        log = LogRiwayat(id_telegram=id_tele, nama_telegram=keterangan, id_mesin=mesin)
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        print(f"Error Log: {e}")
 
 def check_pico_online():
     if status_perangkat['last_update_time'] is None:
@@ -58,98 +70,81 @@ def check_pico_online():
     else:
         status_perangkat['is_online'] = True
 
-# --- [BARU] ROUTE UNTUK TOMBOL REMOTE DI WEBSITE ---
-@app.route('/remote/<action>')
-def remote_control(action):
-    # Simpan perintah ke antrian agar diambil oleh Pico
-    command_queue['action'] = action
-    
-    # Update status visual sementara
-    if action == 'BUKA':
-        status_perangkat['solenoid'] = 'TERBUKA'
-        catat_log("ADMIN WEB", "Membuka Pintu (Remote)", "Web-Dashboard")
-    elif action == 'KUNCI':
-        status_perangkat['solenoid'] = 'TERKUNCI'
-        catat_log("ADMIN WEB", "Mengunci Pintu (Remote)", "Web-Dashboard")
-        
-    return redirect(url_for('dashboard'))
+# --- ROUTE WEBSITE ---
+@app.route('/')
+def dashboard():
+    data_user = Pengguna.query.all()
+    data_log = LogRiwayat.query.order_by(LogRiwayat.waktu.desc()).limit(20).all()
+    check_pico_online()
+    return render_template('dashboard.html', users=data_user, logs=data_log, hardware=status_perangkat)
 
-# --- [BARU] API UNTUK PICO MENGAMBIL PERINTAH ---
+# --- API UNTUK BOT TELEGRAM MEMBUKA LOKER ---
+@app.route('/open', methods=['POST'])
+def open_locker_api():
+    if request.headers.get('X-API-KEY') != API_KEY_SECRET:
+        return jsonify({"message": "Akses Ditolak"}), 401
+    
+    data = request.get_json()
+    user_id = data.get('user_id')
+    username = data.get('username')
+    
+    user = Pengguna.query.get(user_id)
+    if not user:
+        return jsonify({"message": "ID Kamu Belum Terdaftar"}), 404
+    
+    if user.status != 'WHITELIST':
+        return jsonify({"message": "ID Kamu DIBLOKIR"}), 403
+    
+    status_perangkat['solenoid'] = 'TERBUKA'
+    command_queue['action'] = 'BUKA'
+    catat_log(user_id, f"Buka via Bot ({username})", "Loker-Bot")
+    
+    return jsonify({"message": "Loker Berhasil Dibuka!"}), 200
+
+# --- API UNTUK BOT TELEGRAM MENUTUP LOKER ---
+@app.route('/close', methods=['POST'])
+def close_locker_api():
+    if request.headers.get('X-API-KEY') != API_KEY_SECRET:
+        return jsonify({"message": "Akses Ditolak"}), 401
+    
+    data = request.get_json()
+    user_id = data.get('user_id')
+    username = data.get('username')
+
+    status_perangkat['solenoid'] = 'TERKUNCI'
+    command_queue['action'] = 'KUNCI'
+    catat_log(user_id, f"Tutup via Bot ({username})", "Loker-Bot")
+    
+    return jsonify({"message": "Loker Berhasil Dikunci!"}), 200
+
+# --- API UNTUK ALAT (PICO/ESP32) ---
 @app.route('/api/get_command', methods=['GET'])
 def get_command():
     update_last_seen()
-    
-    # Ambil perintah saat ini
     perintah = command_queue['action']
-    
-    # Kosongkan antrian setelah diambil (agar tidak dieksekusi berulang)
     command_queue['action'] = None 
-    
     return jsonify({"command": perintah})
 
-# --- API 1: CEK AKSES (PIN BENAR / SALAH) ---
-@app.route('/api/cek_akses', methods=['GET'])
-def cek_akses():
-    update_last_seen()
-    
-    id_input = request.args.get('kode')
-    mesin_input = request.args.get('id_mesin') or "Loker-Utama"
-    
-    user = Pengguna.query.get(id_input)
-    
-    if user:
-        if user.status == 'WHITELIST':
-            # 1. PIN BENAR
-            catat_log(user.id_telegram, "PIN BENAR", mesin_input)
-            status_perangkat['solenoid'] = "TERBUKA"
-            return jsonify({"hasil": "IZIN", "nama": user.nama_telegram, "pesan": "Silakan Masuk"})
-        else:
-            # 2. PIN SALAH (DIBLOKIR)
-            catat_log(user.id_telegram, "PIN SALAH (BLOKIR)", mesin_input)
-            return jsonify({"hasil": "TOLAK", "pesan": "ID Diblokir"})
-    else:
-        # 3. PIN SALAH (TIDAK TERDAFTAR)
-        catat_log(id_input, "PIN SALAH (UNKNOWN)", mesin_input)
-        return jsonify({"hasil": "TOLAK", "pesan": "ID Tidak Dikenal"})
-
-# --- API 2: UPDATE STATUS (PINTU & GETARAN) ---
 @app.route('/api/update_status', methods=['GET'])
 def update_status():
     update_last_seen()
-    
     alat = request.args.get('alat')
     status = request.args.get('status')
     
     if alat and status:
         if alat in status_perangkat:
-            status_sebelumnya = status_perangkat[alat]
+            status_prev = status_perangkat[alat]
             status_perangkat[alat] = status
-
-            # --- LOGIKA PENCATATAN RIWAYAT ---
-            if alat == 'solenoid' and status != status_sebelumnya:
-                if status == 'TERKUNCI':
-                    catat_log("SYSTEM", "Pintu Terkunci", "Loker-Utama")
-                elif status == 'TERBUKA':
-                    catat_log("SYSTEM", "Pintu Terbuka", "Loker-Utama")
             
-            elif alat == 'getaran' and status == 'BAHAYA':
-                catat_log("SENSOR", "Terdeteksi Getaran Memaksa!", "Loker-Utama")
+            if alat == 'getaran' and status == 'BAHAYA':
+                catat_log("SENSOR", "⚠️ GETARAN MEMAKSA!", "Loker-Fisik")
+            elif alat == 'solenoid' and status != status_prev:
+                catat_log("SYSTEM", f"Pintu {status}", "Loker-Fisik")
 
         return jsonify({"msg": "OK"})
     return jsonify({"msg": "No Data"})
 
-# --- FUNGSI BANTUAN ---
-def update_last_seen():
-    status_perangkat['last_update_time'] = datetime.now()
-    status_perangkat['is_online'] = True
-    status_perangkat['last_seen'] = datetime.now().strftime('%H:%M:%S')
-
-def catat_log(id_tele, keterangan, mesin):
-    log = LogRiwayat(id_telegram=id_tele, nama_telegram=keterangan, id_mesin=mesin)
-    db.session.add(log)
-    db.session.commit()
-
-# --- CRUD USER STANDARD ---
+# --- MANAJEMEN USER ---
 @app.route('/tambah_user', methods=['POST'])
 def tambah_user():
     id_tele = request.form.get('id_tele')
@@ -167,8 +162,17 @@ def hapus_user(id_tele):
         db.session.commit()
     return redirect(url_for('dashboard'))
 
+# --- MAIN EXECUTION ---
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    # Pastikan host='0.0.0.0' agar bisa diakses dari luar localhost
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    
+    # 1. Jalankan Bot Telegram di Thread
+    bot_thread = threading.Thread(target=start_bot)
+    bot_thread.daemon = True 
+    bot_thread.start()
+
+    # 2. Jalankan Flask Web Server
+    print("🚀 Menjalankan Server IoT + Bot Telegram...")
+    # use_reloader=False PENTING di Windows agar bot tidak jalan 2x
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)

@@ -3,7 +3,6 @@ import time
 from typing import Any, Dict, Optional, Tuple
 
 import httpx
-from flask import request, jsonify
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -16,6 +15,7 @@ FLASK_BASE_URL = "http://localhost:5000"
 # Endpoint yang akan dipanggil bot (pastikan route ini ada di app.py)
 API_OPEN = f"{FLASK_BASE_URL}/open"
 API_CLOSE = f"{FLASK_BASE_URL}/close"
+API_REGISTER = f"{FLASK_BASE_URL}/register"
 
 # Samakan dengan BOT_API_KEY di app.py (header: X-API-KEY)
 API_KEY = "MY_SECRET_API_KEY"  # boleh "" / None kalau kamu disable cek key di server
@@ -113,8 +113,43 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Perintah:\n"
         "/start - tampilkan tombol kontrol\n"
         "/myid - lihat telegram ID kamu (untuk dimasukkan ke whitelist web)\n"
+        "/register - daftar akun baru ke database\n"
         "/help - bantuan"
     )
+
+
+async def register_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Command untuk registrasi user baru"""
+    user = update.effective_user
+    user_id = str(user.id)
+    username = user.username or user.full_name or str(user_id)
+
+    # Kirim request registrasi ke server
+    payload = {
+        "user_id": user_id,
+        "username": username,
+    }
+
+    status_code, msg = await call_flask(API_REGISTER, payload, API_KEY)
+
+    if status_code == 0:
+        response = "⚠️ Gagal menghubungi server.\n"
+        detail = msg
+    elif status_code == 201:
+        response = "✅ Registrasi berhasil!\n"
+        detail = f"Akun '{username}' sekarang whitelisted dan bisa akses loker."
+    elif status_code == 409:
+        response = "ℹ️ Akun sudah terdaftar.\n"
+        detail = "Kamu sudah di dalam database, tinggal pakai tombol di bawah."
+    elif status_code in (401, 403):
+        response = "⛔ Akses ditolak.\n"
+        detail = "Cek API key atau izin server."
+    else:
+        response = f"❌ Error ({status_code}).\n"
+        detail = msg
+
+    text = f"{response}{detail}"
+    await update.message.reply_text(text, reply_markup=build_keyboard())
 
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -181,52 +216,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-# Route untuk membuka loker
-@app.route('/open', methods=['POST'])
-def open_locker():
-    # Validate API key
-    api_key = request.headers.get('X-API-KEY')
-    if api_key != 'MY_SECRET_API_KEY':
-        return jsonify({"message": "Unauthorized"}), 401
-    
-    data = request.get_json()
-    user_id = data.get('user_id')
-    username = data.get('username')
-    id_mesin = data.get('id_mesin', 'Loker-Utama')
-    
-    # Check if user is whitelisted
-    user = Pengguna.query.get(user_id)
-    if not user:
-        return jsonify({"message": "User not found"}), 404
-    
-    if user.status == 'BLOKIR':
-        return jsonify({"message": "User is blocked"}), 403
-    
-    # Log the action
-    catat_log(user_id, username, id_mesin)
-    
-    # Trigger unlock
-    status_perangkat['solenoid'] = 'TERBUKA'
-    
-    return jsonify({"message": "Locker opened successfully"}), 200
-
-# Route untuk menutup loker
-@app.route('/close', methods=['POST'])
-def close_locker():
-    # Validate API key
-    api_key = request.headers.get('X-API-KEY')
-    if api_key != 'MY_SECRET_API_KEY':
-        return jsonify({"message": "Unauthorized"}), 401
-    
-    data = request.get_json()
-    id_mesin = data.get('id_mesin', 'Loker-Utama')
-    
-    # Trigger lock
-    status_perangkat['solenoid'] = 'TERKUNCI'
-    
-    return jsonify({"message": "Locker closed successfully"}), 200
-
-
 def main():
     logging.basicConfig(
         level=logging.INFO,
@@ -236,6 +225,7 @@ def main():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("myid", myid))
+    app.add_handler(CommandHandler("register", register_cmd))
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CallbackQueryHandler(button_handler))
 
